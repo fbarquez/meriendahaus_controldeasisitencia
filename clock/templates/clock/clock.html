@@ -1,0 +1,190 @@
+{% extends 'clock/base.html' %}
+
+{% block title %}Fichaje{% endblock %}
+
+{% block content %}
+<div class="header">
+    <h1>Hola, {{ user.first_name|default:user.username }}</h1>
+    <a href="{% url 'logout' %}" class="logout">Salir</a>
+</div>
+
+<!-- Status Card -->
+<div class="card">
+    {% if open_entry %}
+        <div style="text-align: center;">
+            <div style="font-size: 3em; margin-bottom: 10px;">✓</div>
+            <div style="font-size: 1.2em; font-weight: 600; color: #27ae60;">
+                FICHAJE ABIERTO
+            </div>
+            <div class="text-muted mt-2">
+                Entrada: {{ open_entry.check_in|time:"H:i" }}<br>
+                {{ open_entry.location.name }}
+            </div>
+        </div>
+    {% else %}
+        <div style="text-align: center;">
+            <div style="font-size: 3em; margin-bottom: 10px; opacity: 0.3;">○</div>
+            <div style="font-size: 1.2em; font-weight: 600; color: #7f8c8d;">
+                SIN FICHAJE ABIERTO
+            </div>
+        </div>
+    {% endif %}
+
+    <div class="text-center text-muted mt-2" style="font-size: 0.85em;">
+        Hora servidor: {{ server_time|time:"H:i:s" }}
+    </div>
+</div>
+
+<!-- Messages -->
+{% if error %}
+    <div class="alert alert-error">{{ error }}</div>
+{% endif %}
+{% if success %}
+    <div class="alert alert-success">{{ success }}</div>
+{% endif %}
+
+<!-- Action Form -->
+<form method="post" id="clock-form">
+    {% csrf_token %}
+    <input type="hidden" name="location" id="location-input">
+
+    {% if open_entry %}
+        <input type="hidden" name="action" value="out">
+        <button type="button" class="btn btn-danger mb-2" onclick="startScanner()">
+            Escanear QR - SALIDA
+        </button>
+    {% else %}
+        <input type="hidden" name="action" value="in">
+        <button type="button" class="btn btn-success mb-2" onclick="startScanner()">
+            Escanear QR - ENTRADA
+        </button>
+    {% endif %}
+</form>
+
+<!-- QR Scanner Container (hidden by default) -->
+<div id="scanner-container" class="card" style="display: none;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <span style="font-weight: 600;">Escanear código QR</span>
+        <button type="button" onclick="stopScanner()" style="background: none; border: none; font-size: 1.5em; cursor: pointer;">×</button>
+    </div>
+    <div id="qr-reader" style="width: 100%;"></div>
+</div>
+
+<!-- Manual Input (fallback) -->
+<div class="card">
+    <div style="font-size: 0.9em; color: #666; margin-bottom: 10px;">
+        ¿No funciona la cámara? Introduce el código manualmente:
+    </div>
+    <div style="display: flex; gap: 10px;">
+        <input
+            type="text"
+            id="manual-code"
+            class="form-control"
+            placeholder="LOCAL_01"
+            style="text-transform: uppercase;"
+        >
+        <button type="button" class="btn btn-secondary" onclick="submitManualCode()" style="width: auto; padding: 14px 20px;">
+            OK
+        </button>
+    </div>
+</div>
+
+<p class="text-center text-muted" style="font-size: 0.8em; margin-top: 20px;">
+    Recuerda: debes estar conectado al Wi-Fi del local para fichar.
+</p>
+{% endblock %}
+
+{% block extra_js %}
+<!-- QR Scanner Library -->
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+<script>
+    let html5QrCode = null;
+    let isScanning = false;
+
+    function startScanner() {
+        const container = document.getElementById('scanner-container');
+        container.style.display = 'block';
+
+        if (html5QrCode === null) {
+            html5QrCode = new Html5Qrcode("qr-reader");
+        }
+
+        if (isScanning) return;
+
+        html5QrCode.start(
+            { facingMode: "environment" },
+            {
+                fps: 10,
+                qrbox: { width: 250, height: 250 }
+            },
+            onScanSuccess,
+            onScanFailure
+        ).then(() => {
+            isScanning = true;
+        }).catch(err => {
+            console.error("Error starting scanner:", err);
+            alert("No se pudo acceder a la cámara. Usa el código manual.");
+            container.style.display = 'none';
+        });
+    }
+
+    function stopScanner() {
+        const container = document.getElementById('scanner-container');
+
+        if (html5QrCode && isScanning) {
+            html5QrCode.stop().then(() => {
+                isScanning = false;
+                container.style.display = 'none';
+            }).catch(err => {
+                console.error("Error stopping scanner:", err);
+            });
+        } else {
+            container.style.display = 'none';
+        }
+    }
+
+    function onScanSuccess(decodedText, decodedResult) {
+        // Validate format (e.g., LOCAL_01)
+        const code = decodedText.trim().toUpperCase();
+
+        if (!code.match(/^[A-Z0-9_]+$/)) {
+            console.warn("Invalid QR code format:", code);
+            return;
+        }
+
+        // Stop scanner and submit
+        stopScanner();
+        submitCode(code);
+    }
+
+    function onScanFailure(error) {
+        // Ignore scan failures (happens continuously while scanning)
+    }
+
+    function submitManualCode() {
+        const input = document.getElementById('manual-code');
+        const code = input.value.trim().toUpperCase();
+
+        if (!code) {
+            alert("Introduce un código");
+            return;
+        }
+
+        submitCode(code);
+    }
+
+    function submitCode(code) {
+        document.getElementById('location-input').value = code;
+        document.getElementById('clock-form').submit();
+    }
+
+    // Allow Enter key in manual input
+    document.getElementById('manual-code').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            submitManualCode();
+        }
+    });
+</script>
+{% endblock %}

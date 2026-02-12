@@ -1,0 +1,229 @@
+{% extends "admin/clock/admin_base.html" %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+    .calendar {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        border: 1px solid #e2e8f0;
+    }
+
+    .calendar th {
+        background: var(--primary);
+        color: white;
+        padding: 15px;
+        text-align: center;
+        font-weight: 500;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+
+    .calendar td {
+        border: 1px solid #e2e8f0;
+        padding: 8px;
+        vertical-align: top;
+        height: 100px;
+        width: 14.28%;
+    }
+
+    .calendar .day-number {
+        font-weight: 600;
+        font-size: 1.1em;
+        margin-bottom: 5px;
+        color: #2d3748;
+    }
+
+    .calendar .other-month {
+        background: #f7fafc;
+    }
+
+    .calendar .other-month .day-number {
+        color: #a0aec0;
+    }
+
+    .calendar .today {
+        background: #ebf8ff;
+    }
+
+    .calendar .today .day-number {
+        background: var(--primary);
+        color: white;
+        padding: 2px 8px;
+        border-radius: 20px;
+        display: inline-block;
+    }
+
+    .calendar .entry-dot {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        margin: 1px;
+    }
+
+    .calendar .entry-dot.normal { background: #38a169; }
+    .calendar .entry-dot.open { background: #3182ce; }
+    .calendar .entry-dot.overtime { background: #d69e2e; }
+
+    .calendar .day-entries {
+        font-size: 0.75em;
+        margin-top: 5px;
+    }
+
+    .calendar .entry-count {
+        background: #edf2f7;
+        padding: 2px 6px;
+        border-radius: 10px;
+        font-size: 0.8em;
+        color: #4a5568;
+    }
+
+    .calendar-nav {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .calendar-nav h2 {
+        margin: 0;
+        font-size: 1.25rem;
+        color: #2d3748;
+    }
+
+    .calendar-legend {
+        display: flex;
+        gap: 24px;
+        margin-top: 20px;
+        font-size: 0.85rem;
+        color: #4a5568;
+    }
+
+    .calendar-legend > span {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .legend-icon {
+        width: 16px;
+        height: 16px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .legend-icon svg {
+        width: 14px;
+        height: 14px;
+    }
+</style>
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="dashboard-container">
+    <div class="page-header">
+        <h1>Calendario</h1>
+    </div>
+
+    <div class="nav-actions mb-3">
+        <a href="{% url 'admin_dashboard' %}" class="btn btn-secondary">Dashboard</a>
+    </div>
+
+    <!-- Navigation -->
+    <div class="calendar-nav">
+        <a href="?year={{ prev_year }}&month={{ prev_month }}" class="btn btn-secondary">Anterior</a>
+        <h2>{{ month_name }} {{ year }}</h2>
+        <a href="?year={{ next_year }}&month={{ next_month }}" class="btn btn-secondary">Siguiente</a>
+    </div>
+
+    <!-- Calendar -->
+    <table class="calendar">
+        <thead>
+            <tr>
+                <th>Lunes</th>
+                <th>Martes</th>
+                <th>Miercoles</th>
+                <th>Jueves</th>
+                <th>Viernes</th>
+                <th>Sabado</th>
+                <th>Domingo</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for week in weeks %}
+            <tr>
+                {% for day in week %}
+                <td class="{% if not day.is_current_month %}other-month{% endif %} {% if day.is_today %}today{% endif %}">
+                    <div class="day-number">{{ day.date.day }}</div>
+
+                    {% if day.entries %}
+                    <div class="day-entries">
+                        <span class="entry-count">{{ day.entry_count }} fichaje{% if day.entry_count != 1 %}s{% endif %}</span>
+                        <div style="margin-top: 3px;">
+                            {% for entry in day.entries|slice:":5" %}
+                            <span class="entry-dot {% if entry.is_open %}open{% elif entry.duration_minutes and entry.duration_minutes > 480 %}overtime{% else %}normal{% endif %}"
+                                  title="{{ entry.user.get_full_name }}: {{ entry.check_in|time:'H:i' }}{% if entry.check_out %} - {{ entry.check_out|time:'H:i' }}{% endif %}">
+                            </span>
+                            {% endfor %}
+                            {% if day.entry_count > 5 %}
+                            <small class="text-muted">+{{ day.entry_count|add:"-5" }}</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if day.has_open %}
+                    <div class="mt-1">
+                        <span class="legend-icon text-info" title="Fichaje sin cerrar">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </span>
+                    </div>
+                    {% endif %}
+                    {% if day.has_overtime %}
+                    <div class="mt-1">
+                        <span class="legend-icon text-warning" title="Horas extra">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                            </svg>
+                        </span>
+                    </div>
+                    {% endif %}
+                </td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="calendar-legend">
+        <span><span class="entry-dot normal"></span> Normal</span>
+        <span><span class="entry-dot open"></span> Abierto</span>
+        <span><span class="entry-dot overtime"></span> +8 horas</span>
+        <span>
+            <span class="legend-icon text-info">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </span>
+            Fichaje sin cerrar
+        </span>
+        <span>
+            <span class="legend-icon text-warning">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+            </span>
+            Horas extra
+        </span>
+    </div>
+</div>
+{% endblock dashboard_content %}
