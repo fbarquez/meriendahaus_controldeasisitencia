@@ -1,0 +1,195 @@
+{% extends "admin/clock/admin_base.html" %}
+
+{% block extra_breadcrumbs %}{% endblock %}
+
+{% block dashboard_content %}
+<div class="dashboard-container">
+    <div class="page-header">
+        <h1>Dashboard</h1>
+        <p class="subtitle">{{ now|date:"l, d F Y" }} &middot; {{ now|time:"H:i" }}</p>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="nav-actions">
+        <a href="{% url 'admin_who_is_here' %}" class="btn btn-primary">Personal presente</a>
+        <a href="{% url 'admin_hours_summary' %}" class="btn btn-secondary">Resumen de horas</a>
+        <a href="{% url 'admin_calendar' %}" class="btn btn-secondary">Calendario</a>
+        <a href="{% url 'admin:clock_timeentry_changelist' %}" class="btn btn-secondary">Ver fichajes</a>
+    </div>
+
+    <!-- Alerts Section -->
+    {% if forgotten_entries %}
+    <div class="alert alert-danger">
+        <svg class="alert-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+        </svg>
+        <div class="alert-content">
+            <strong>{{ forgotten_entries|length }} fichaje(s) sin cerrar de días anteriores</strong>
+            <p>Hay empleados que olvidaron registrar su salida.</p>
+        </div>
+        <a href="{% url 'admin_close_forgotten' %}" class="btn btn-danger btn-sm">Revisar</a>
+    </div>
+    {% endif %}
+
+    {% if stale_entries %}
+    <div class="alert alert-warning">
+        <svg class="alert-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <div class="alert-content">
+            <strong>{{ stale_entries|length }} fichaje(s) abiertos hace más de 12 horas</strong>
+            <p>Posibles olvidos del día de hoy.</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="label">Personal presente</div>
+            <div class="value">{{ open_entries|length }}</div>
+            <div class="details">
+                <a href="{% url 'admin_who_is_here' %}">Ver detalle</a>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="label">Fichajes hoy</div>
+            <div class="value">{{ today_stats.total_entries }}</div>
+            <div class="details">
+                <div class="row">
+                    <span>Completados</span>
+                    <span class="font-semibold">{{ today_stats.completed }}</span>
+                </div>
+                <div class="row">
+                    <span>Abiertos</span>
+                    <span class="font-semibold">{{ today_stats.open }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="label">Horas esta semana</div>
+            <div class="value success">{{ week_stats.total_hours }}h</div>
+            <div class="details">
+                <div class="row">
+                    <span>Total fichajes</span>
+                    <span class="font-semibold">{{ week_stats.total_entries }}</span>
+                </div>
+                <div class="row">
+                    <span>Empleados activos</span>
+                    <span class="font-semibold">{{ week_stats.unique_employees }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="label">Entradas manuales hoy</div>
+            <div class="value {% if today_stats.manual > 0 %}warning{% endif %}">{{ today_stats.manual }}</div>
+            <div class="details">
+                <span class="text-muted">Correcciones del administrador</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Currently Present -->
+    <h3 class="section-title">Personal presente ({{ open_entries|length }})</h3>
+    <div class="card">
+        {% if open_entries %}
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Empleado</th>
+                    <th>Hora de entrada</th>
+                    <th>Tiempo presente</th>
+                    <th>Local</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in open_entries %}
+                <tr>
+                    <td>
+                        <div class="user-cell">
+                            <span class="avatar">{{ entry.user.first_name|slice:":1"|upper }}{{ entry.user.last_name|slice:":1"|upper }}</span>
+                            <div class="user-info">
+                                <div class="name">{{ entry.user.get_full_name|default:entry.user.username }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td><span class="font-mono">{{ entry.check_in|time:"H:i" }}</span></td>
+                    <td>{{ entry.check_in|timesince }}</td>
+                    <td>{{ entry.location.name }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+            </svg>
+            <p>No hay personal en el local en este momento</p>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if overtime_entries %}
+    <!-- Overtime this week -->
+    <h3 class="section-title">Jornadas extendidas esta semana ({{ overtime_count }})</h3>
+    <div class="card">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Empleado</th>
+                    <th>Fecha</th>
+                    <th>Duración</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in overtime_entries %}
+                <tr>
+                    <td>
+                        <div class="user-cell">
+                            <span class="avatar">{{ entry.user.first_name|slice:":1"|upper }}{{ entry.user.last_name|slice:":1"|upper }}</span>
+                            <span class="font-medium">{{ entry.user.get_full_name|default:entry.user.username }}</span>
+                        </div>
+                    </td>
+                    <td>{{ entry.check_in|date:"d/m/Y" }}</td>
+                    <td class="font-mono font-semibold">{{ entry.duration_display }}</td>
+                    <td><span class="badge badge-warning">Más de 8h</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    {% if recent_manual %}
+    <!-- Recent manual entries -->
+    <h3 class="section-title">Correcciones recientes</h3>
+    <div class="card">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Empleado</th>
+                    <th>Fecha</th>
+                    <th>Modificado por</th>
+                    <th>Motivo</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in recent_manual %}
+                <tr>
+                    <td>{{ entry.user.get_full_name|default:entry.user.username }}</td>
+                    <td>{{ entry.check_in|date:"d/m/Y" }}</td>
+                    <td>{{ entry.modified_by.username|default:"—" }}</td>
+                    <td class="text-muted">{{ entry.notes|truncatewords:8 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+{% endblock dashboard_content %}

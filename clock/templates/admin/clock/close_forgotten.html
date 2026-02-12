@@ -1,0 +1,88 @@
+{% extends "admin/clock/admin_base.html" %}
+
+{% block dashboard_content %}
+<div class="dashboard-container">
+    <div class="page-header">
+        <h1>Cerrar fichajes olvidados</h1>
+    </div>
+
+    <div class="nav-actions">
+        <a href="{% url 'admin_dashboard' %}" class="btn btn-secondary">Cancelar</a>
+    </div>
+
+    {% if forgotten %}
+    <div class="alert alert-warning mb-3">
+        <svg class="alert-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <div class="alert-content">
+            <strong>{{ count }} fichaje{% if count != 1 %}s{% endif %} sin cerrar de dias anteriores</strong>
+            <p>Al cerrarlos, se establecera la hora de salida a las 23:59 del dia de entrada y se marcaran como entrada manual.</p>
+        </div>
+    </div>
+
+    <h3 class="section-title">Fichajes a cerrar</h3>
+    <div class="card">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Empleado</th>
+                    <th>Fecha entrada</th>
+                    <th>Hora entrada</th>
+                    <th>Local</th>
+                    <th>Tiempo abierto</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in forgotten %}
+                <tr>
+                    <td>
+                        <div class="user-cell">
+                            <span class="avatar">
+                                {{ entry.user.first_name|slice:":1"|upper }}{{ entry.user.last_name|slice:":1"|upper }}
+                            </span>
+                            <span class="font-medium">{{ entry.user.get_full_name|default:entry.user.username }}</span>
+                        </div>
+                    </td>
+                    <td>{{ entry.check_in|date:"d/m/Y" }}</td>
+                    <td class="font-mono">{{ entry.check_in|time:"H:i" }}</td>
+                    <td>{{ entry.location.name }}</td>
+                    <td class="text-danger font-semibold">{{ entry.check_in|timesince }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <form method="post" class="mt-3">
+        {% csrf_token %}
+        <div class="alert alert-danger">
+            <svg class="alert-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+            <div class="alert-content">
+                <strong>Confirmar accion</strong>
+                <p>Esta accion cerrara todos los fichajes listados arriba. Se registrara en el historial de cambios.</p>
+            </div>
+        </div>
+        <div class="nav-actions mt-2">
+            <button type="submit" class="btn btn-danger">
+                Cerrar {{ count }} fichaje{% if count != 1 %}s{% endif %}
+            </button>
+            <a href="{% url 'admin_dashboard' %}" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+
+    {% else %}
+    <div class="card mt-3">
+        <div class="empty-state">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <p>No hay fichajes olvidados pendientes de cerrar</p>
+            <a href="{% url 'admin_dashboard' %}" class="btn btn-primary mt-2">Volver al Dashboard</a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock dashboard_content %}
