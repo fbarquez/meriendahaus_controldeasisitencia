@@ -28,7 +28,7 @@ def login_view(request):
         password = request.POST.get('password', '')
 
         if not username or not password:
-            messages.error(request, 'Introduce usuario y contraseña')
+            messages.error(request, 'Enter username and PIN')
             return render(request, 'clock/login.html')
 
         user = authenticate(request, username=username, password=password)
@@ -39,10 +39,10 @@ def login_view(request):
                 logger.info(f"User {username} logged in from {get_client_ip(request)}")
                 return redirect('clock')
             else:
-                messages.error(request, 'Tu cuenta está desactivada')
+                messages.error(request, 'Your account is disabled')
         else:
             logger.warning(f"Failed login attempt for {username} from {get_client_ip(request)}")
-            messages.error(request, 'Usuario o contraseña incorrectos')
+            messages.error(request, 'Invalid username or PIN')
 
     return render(request, 'clock/login.html')
 
@@ -60,52 +60,49 @@ def clock_view(request):
     """
     Main view for employees to clock in/out.
     Shows current status and handles clock actions.
+    Simple one-button interface with automatic IP validation.
     """
     user = request.user
     open_entry = TimeEntry.get_open_entry(user)
     error = None
     success = None
 
+    # Get the active location (single location setup)
+    location = Location.objects.filter(is_active=True).first()
+
     if request.method == 'POST':
         action = request.POST.get('action')
-        location_code = request.POST.get('location', '').strip().upper()
 
-        if not location_code:
-            error = "Escanea el código QR o introduce el código del local"
+        if not location:
+            error = "No location configured. Contact administrator."
         else:
-            try:
-                location = Location.objects.get(code=location_code)
-            except Location.DoesNotExist:
-                error = f"Código de local no válido: {location_code}"
-                location = None
+            # Validate IP
+            is_allowed, client_ip, ip_error = validate_location_access(request, location)
 
-            if location:
-                # Validate IP
-                is_allowed, client_ip, ip_error = validate_location_access(request, location)
-
-                if not is_allowed:
-                    error = ip_error
-                    logger.warning(
-                        f"IP validation failed for {user.username}: "
-                        f"IP={client_ip}, Location={location_code}"
-                    )
+            if not is_allowed:
+                error = "You must be at the workplace to clock in/out"
+                logger.warning(
+                    f"IP validation failed for {user.username}: "
+                    f"IP={client_ip}, Location={location.code}"
+                )
+            else:
+                # Process action
+                if action == 'in':
+                    success, error = do_check_in(user, location, client_ip)
+                elif action == 'out':
+                    success, error = do_check_out(user, location, client_ip)
                 else:
-                    # Process action
-                    if action == 'in':
-                        success, error = do_check_in(user, location, client_ip)
-                    elif action == 'out':
-                        success, error = do_check_out(user, location, client_ip)
-                    else:
-                        error = "Acción no válida"
+                    error = "Invalid action"
 
-                    # Refresh open_entry after action
-                    open_entry = TimeEntry.get_open_entry(user)
+                # Refresh open_entry after action
+                open_entry = TimeEntry.get_open_entry(user)
 
     context = {
         'open_entry': open_entry,
         'error': error,
         'success': success,
         'server_time': timezone.now(),
+        'location': location,
     }
     return render(request, 'clock/clock.html', context)
 
@@ -122,7 +119,7 @@ def do_check_in(user, location, client_ip):
     if TimeEntry.has_open_entry(user):
         open_entry = TimeEntry.get_open_entry(user)
         time_str = open_entry.check_in.strftime('%H:%M')
-        return None, f"Ya tienes un fichaje abierto desde las {time_str}"
+        return None, f"You already clocked in at {time_str}"
 
     # Create new entry
     now = timezone.now()
@@ -135,7 +132,7 @@ def do_check_in(user, location, client_ip):
     )
 
     logger.info(f"Check-in: {user.username} at {location.code} from IP {client_ip}")
-    return f"Entrada registrada a las {now.strftime('%H:%M')}", None
+    return f"Clocked in at {now.strftime('%H:%M')}", None
 
 
 @transaction.atomic
@@ -149,7 +146,7 @@ def do_check_out(user, location, client_ip):
     open_entry = TimeEntry.get_open_entry(user)
 
     if not open_entry:
-        return None, "No tienes ningún fichaje abierto"
+        return None, "You haven't clocked in yet"
 
     # Update entry with check-out
     now = timezone.now()
@@ -162,7 +159,7 @@ def do_check_out(user, location, client_ip):
         f"Check-out: {user.username} at {location.code} from IP {client_ip} "
         f"(duration: {duration})"
     )
-    return f"Salida registrada a las {now.strftime('%H:%M')} (Duración: {duration})", None
+    return f"Clocked out at {now.strftime('%H:%M')} (Duration: {duration})", None
 
 
 @login_required

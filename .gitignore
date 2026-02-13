@@ -28,7 +28,9 @@ staticfiles/
 
 # Backups (keep folder, ignore contents)
 backups/*.sqlite3
+backups/*.sqlite3.gz
 backups/*.sql
+backups/*.log
 
 # OS
 .DS_Store
