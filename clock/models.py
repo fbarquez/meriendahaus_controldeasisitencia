@@ -145,3 +145,43 @@ class TimeEntry(models.Model):
     def has_open_entry(cls, user):
         """Check if user has an open entry."""
         return cls.objects.filter(user=user, check_out__isnull=True).exists()
+
+
+class FailedClockAttempt(models.Model):
+    """
+    Records when an employee tries to clock in/out from outside the allowed network.
+    Used for audit and monitoring purposes.
+    """
+    ACTION_CHOICES = [
+        ('in', 'Clock In'),
+        ('out', 'Clock Out'),
+    ]
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='failed_attempts',
+        verbose_name="Employee"
+    )
+    location = models.ForeignKey(
+        Location,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='failed_attempts',
+        verbose_name="Location"
+    )
+    action = models.CharField(
+        max_length=3,
+        choices=ACTION_CHOICES,
+        verbose_name="Action attempted"
+    )
+    ip_address = models.GenericIPAddressField(verbose_name="IP Address")
+    timestamp = models.DateTimeField(auto_now_add=True, verbose_name="Timestamp")
+
+    class Meta:
+        verbose_name = "Failed Clock Attempt"
+        verbose_name_plural = "Failed Clock Attempts"
+        ordering = ['-timestamp']
+
+    def __str__(self):
+        return f"{self.user.username} - {self.action} - {self.timestamp.strftime('%Y-%m-%d %H:%M')}"

@@ -227,21 +227,29 @@
     </div>
 
     <script>
-        // Splash screen logic
+        // Splash screen logic - only show once per session
         document.addEventListener('DOMContentLoaded', function() {
             const splash = document.getElementById('splash');
             const mainContent = document.getElementById('main-content');
+            const splashShown = sessionStorage.getItem('splashShown');
 
-            // Show splash for 1.5 seconds, then fade out
-            setTimeout(function() {
-                splash.classList.add('fade-out');
+            if (splashShown) {
+                // Already shown this session, skip splash
+                splash.classList.add('hidden');
                 mainContent.classList.add('visible');
+            } else {
+                // First time this session, show splash
+                sessionStorage.setItem('splashShown', 'true');
 
-                // Remove splash from DOM after animation
                 setTimeout(function() {
-                    splash.classList.add('hidden');
-                }, 500);
-            }, 1500);
+                    splash.classList.add('fade-out');
+                    mainContent.classList.add('visible');
+
+                    setTimeout(function() {
+                        splash.classList.add('hidden');
+                    }, 500);
+                }, 1500);
+            }
         });
     </script>
     {% block extra_js %}{% endblock %}

@@ -12,7 +12,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 from django.db import transaction
 
-from .models import Location, TimeEntry
+from .models import Location, TimeEntry, FailedClockAttempt
 from .ip_utils import get_client_ip, validate_location_access
 
 logger = logging.getLogger(__name__)
@@ -81,9 +81,18 @@ def clock_view(request):
 
             if not is_allowed:
                 error = "You must be at the workplace to clock in/out"
+
+                # Record the failed attempt
+                FailedClockAttempt.objects.create(
+                    user=user,
+                    location=location,
+                    action=action,
+                    ip_address=client_ip
+                )
+
                 logger.warning(
                     f"IP validation failed for {user.username}: "
-                    f"IP={client_ip}, Location={location.code}"
+                    f"IP={client_ip}, Location={location.code} - Attempt recorded"
                 )
             else:
                 # Process action
