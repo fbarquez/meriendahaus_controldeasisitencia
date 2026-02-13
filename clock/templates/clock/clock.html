@@ -12,14 +12,14 @@
 <div class="card">
     {% if open_entry %}
         <div style="text-align: center;">
-            <div style="font-size: 3em; margin-bottom: 10px;">✓</div>
+            <div style="font-size: 2em; margin-bottom: 10px; color: #27ae60; font-weight: bold;">IN</div>
             <div style="font-size: 1.2em; font-weight: 600; color: #27ae60;">
-                CLOCKED IN · {{ open_entry.check_in|time:"H:i" }}
+                CLOCKED IN - {{ open_entry.check_in|time:"H:i" }}
             </div>
         </div>
     {% else %}
         <div style="text-align: center;">
-            <div style="font-size: 3em; margin-bottom: 10px; opacity: 0.3;">○</div>
+            <div style="font-size: 2em; margin-bottom: 10px; color: #7f8c8d; font-weight: bold;">OUT</div>
             <div style="font-size: 1.2em; font-weight: 600; color: #7f8c8d;">
                 NOT CLOCKED IN
             </div>

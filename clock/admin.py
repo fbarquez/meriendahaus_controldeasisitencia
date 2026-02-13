@@ -158,7 +158,7 @@ class TimeEntryAdmin(SimpleHistoryAdmin):
     def get_check_out_time(self, obj):
         if obj.check_out:
             return obj.check_out.strftime('%H:%M')
-        return '—'
+        return '-'
     get_check_out_time.short_description = 'Out'
 
     def get_duration(self, obj):
@@ -228,13 +228,13 @@ class CustomUserAdmin(BaseUserAdmin):
     list_filter = ('is_active',)
 
     def get_name(self, obj):
-        return obj.get_full_name() or '—'
+        return obj.get_full_name() or '-'
     get_name.short_description = 'Name'
 
     def get_status(self, obj):
         if TimeEntry.objects.filter(user=obj, check_out__isnull=True).exists():
             return format_html('<span style="color: #38a169; font-weight: 600;">PRESENT</span>')
-        return '—'
+        return '-'
     get_status.short_description = 'Status'
 
 
