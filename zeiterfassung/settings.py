@@ -75,16 +75,16 @@ DATABASES = {
     }
 }
 
-# Password validation
+# Password validation - Allow 4-digit PIN
 AUTH_PASSWORD_VALIDATORS = [
-    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'OPTIONS': {'min_length': 4},
+    },
 ]
 
 # Internationalization
-LANGUAGE_CODE = 'es'
+LANGUAGE_CODE = 'en'
 TIME_ZONE = os.getenv('TZ', 'Europe/Berlin')
 USE_I18N = True
 USE_TZ = True
