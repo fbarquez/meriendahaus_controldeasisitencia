@@ -3,7 +3,7 @@
 {% block dashboard_content %}
 <div class="dashboard-container">
     <div class="page-header">
-        <h1>Resumen de Horas</h1>
+        <h1>Hours Summary</h1>
         <p class="subtitle">{{ period_name }}</p>
     </div>
 
@@ -13,87 +13,54 @@
 
     <!-- Period Tabs -->
     <div class="nav-tabs">
-        <a href="?period=week" class="{% if period == 'week' %}active{% endif %}">Esta semana</a>
-        <a href="?period=month" class="{% if period == 'month' %}active{% endif %}">Este mes</a>
-        <a href="?period=last_month" class="{% if period == 'last_month' %}active{% endif %}">Mes anterior</a>
+        <a href="?period=week" class="{% if period == 'week' %}active{% endif %}">This Week</a>
+        <a href="?period=month" class="{% if period == 'month' %}active{% endif %}">This Month</a>
     </div>
 
     <!-- Summary Cards -->
     <div class="stats-grid">
         <div class="stat-card">
-            <div class="label">Total horas</div>
+            <div class="label">Total Hours</div>
             <div class="value success">{{ totals.hours|floatformat:1 }}h</div>
         </div>
         <div class="stat-card">
-            <div class="label">Total fichajes</div>
+            <div class="label">Total Entries</div>
             <div class="value">{{ totals.entries }}</div>
-        </div>
-        <div class="stat-card">
-            <div class="label">Fichajes con horas extra</div>
-            <div class="value {% if totals.overtime > 0 %}warning{% endif %}">{{ totals.overtime }}</div>
         </div>
     </div>
 
     <!-- Employee Table -->
-    <h3 class="section-title">Por empleado</h3>
+    <h3 class="section-title">By Employee</h3>
     <div class="card">
         <table class="data-table">
             <thead>
                 <tr>
-                    <th>Empleado</th>
-                    <th class="text-right">Horas totales</th>
-                    <th class="text-right">Dias</th>
-                    <th class="text-right">Promedio/dia</th>
-                    <th class="text-center">Fichajes</th>
-                    <th class="text-center">Extras</th>
-                    <th class="text-center">Manuales</th>
-                    <th class="text-center">Estado</th>
+                    <th>Employee</th>
+                    <th class="text-right">Total Hours</th>
+                    <th class="text-right">Days</th>
+                    <th class="text-center">Entries</th>
                 </tr>
             </thead>
             <tbody>
                 {% for emp in employee_data %}
                 <tr>
                     <td>
-                        <a href="{% url 'admin_employee_detail' emp.user.id %}" style="text-decoration: none; color: inherit;">
-                            <div class="user-cell">
-                                <span class="avatar">
-                                    {{ emp.user.first_name|slice:":1"|upper }}{{ emp.user.last_name|slice:":1"|upper }}
-                                </span>
-                                <span class="font-medium">{{ emp.user.get_full_name|default:emp.user.username }}</span>
-                            </div>
-                        </a>
+                        <div class="user-cell">
+                            <span class="avatar">
+                                {{ emp.user.first_name|slice:":1"|upper }}{{ emp.user.last_name|slice:":1"|upper }}
+                            </span>
+                            <span class="font-medium">{{ emp.user.get_full_name|default:emp.user.username }}</span>
+                        </div>
                     </td>
                     <td class="text-right">
                         <strong>{{ emp.total_hours|floatformat:1 }}h</strong>
                     </td>
                     <td class="text-right">{{ emp.days_worked }}</td>
-                    <td class="text-right">{{ emp.avg_hours_per_day|floatformat:1 }}h</td>
                     <td class="text-center">{{ emp.total_entries }}</td>
-                    <td class="text-center">
-                        {% if emp.overtime_count > 0 %}
-                        <span class="badge badge-warning">{{ emp.overtime_count }}</span>
-                        {% else %}
-                        <span class="text-muted">0</span>
-                        {% endif %}
-                    </td>
-                    <td class="text-center">
-                        {% if emp.manual_count > 0 %}
-                        <span class="badge badge-info">{{ emp.manual_count }}</span>
-                        {% else %}
-                        <span class="text-muted">0</span>
-                        {% endif %}
-                    </td>
-                    <td class="text-center">
-                        {% if emp.open_entry %}
-                        <span class="badge badge-success">En local</span>
-                        {% else %}
-                        <span class="text-muted">—</span>
-                        {% endif %}
-                    </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="8" class="text-center text-muted">No hay datos para este periodo</td>
+                    <td colspan="4" class="text-center text-muted">No data for this period</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -102,20 +69,10 @@
                     <td><strong>TOTAL</strong></td>
                     <td class="text-right"><strong>{{ totals.hours|floatformat:1 }}h</strong></td>
                     <td></td>
-                    <td></td>
                     <td class="text-center"><strong>{{ totals.entries }}</strong></td>
-                    <td class="text-center"><strong>{{ totals.overtime }}</strong></td>
-                    <td></td>
-                    <td></td>
                 </tr>
             </tfoot>
         </table>
-    </div>
-
-    <div class="mt-3">
-        <a href="{% url 'admin:clock_timeentry_changelist' %}?check_in__gte={{ start_date|date:'Y-m-d' }}" class="btn btn-secondary">
-            Ver todos los fichajes de este periodo
-        </a>
     </div>
 </div>
 {% endblock dashboard_content %}

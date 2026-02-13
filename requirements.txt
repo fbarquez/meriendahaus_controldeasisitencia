@@ -7,9 +7,3 @@ django-simple-history>=3.4
 
 # Environment variables
 python-dotenv>=1.0
-
-# For Excel export
-openpyxl>=3.1
-
-# QR code generation (for admin)
-qrcode[pil]>=7.4
