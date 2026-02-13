@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#2c3e50">
+    <meta name="theme-color" content="#ffffff">
     <title>{% block title %}Time Clock{% endblock %} - Meriendahaus</title>
 
     <!-- PWA support -->
@@ -11,6 +11,50 @@
     <link rel="apple-touch-icon" href="/static/icon-192.png">
 
     <style>
+        /* Splash Screen */
+        .splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            opacity: 1;
+            transition: opacity 0.5s ease-out;
+        }
+
+        .splash-screen.fade-out {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .splash-screen.hidden {
+            display: none;
+        }
+
+        .splash-logo {
+            width: 80%;
+            max-width: 280px;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.9; }
+        }
+
+        .main-content {
+            opacity: 0;
+            transition: opacity 0.3s ease-in;
+        }
+
+        .main-content.visible {
+            opacity: 1;
+        }
         * {
             box-sizing: border-box;
             margin: 0;
@@ -172,9 +216,34 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <div class="container">
+    <!-- Splash Screen -->
+    <div class="splash-screen" id="splash">
+        <img src="/static/img/logo-horizontal.png" alt="Meriendahaus" class="splash-logo">
+    </div>
+
+    <!-- Main Content -->
+    <div class="container main-content" id="main-content">
         {% block content %}{% endblock %}
     </div>
+
+    <script>
+        // Splash screen logic
+        document.addEventListener('DOMContentLoaded', function() {
+            const splash = document.getElementById('splash');
+            const mainContent = document.getElementById('main-content');
+
+            // Show splash for 1.5 seconds, then fade out
+            setTimeout(function() {
+                splash.classList.add('fade-out');
+                mainContent.classList.add('visible');
+
+                // Remove splash from DOM after animation
+                setTimeout(function() {
+                    splash.classList.add('hidden');
+                }, 500);
+            }, 1500);
+        });
+    </script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>
