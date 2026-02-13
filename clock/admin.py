@@ -16,7 +16,7 @@ from django import forms
 
 from simple_history.admin import SimpleHistoryAdmin
 
-from .models import Location, TimeEntry
+from .models import Location, TimeEntry, FailedClockAttempt
 
 
 # -----------------------------------------------------------------------------
@@ -487,3 +487,52 @@ class CustomUserAdmin(BaseUserAdmin):
 
 
 admin.site.register(User, CustomUserAdmin)
+
+
+# -----------------------------------------------------------------------------
+# Failed Clock Attempts Admin
+# -----------------------------------------------------------------------------
+
+@admin.register(FailedClockAttempt, site=admin.site)
+class FailedClockAttemptAdmin(admin.ModelAdmin):
+    list_display = (
+        'get_employee',
+        'get_action_badge',
+        'ip_address',
+        'location',
+        'timestamp'
+    )
+    list_filter = ('action', 'location', 'timestamp')
+    search_fields = ('user__username', 'user__first_name', 'user__last_name', 'ip_address')
+    date_hierarchy = 'timestamp'
+    readonly_fields = ('user', 'location', 'action', 'ip_address', 'timestamp')
+    list_per_page = 50
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def get_employee(self, obj):
+        name = obj.user.get_full_name() or obj.user.username
+        return format_html(
+            '<span style="font-weight: 600;">{}</span>',
+            name
+        )
+    get_employee.short_description = 'Employee'
+    get_employee.admin_order_field = 'user__first_name'
+
+    def get_action_badge(self, obj):
+        if obj.action == 'in':
+            return format_html(
+                '<span style="background: #fed7d7; color: #c53030; '
+                'padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; '
+                'text-transform: uppercase;">Failed IN</span>'
+            )
+        return format_html(
+            '<span style="background: #fed7d7; color: #c53030; '
+            'padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; '
+            'text-transform: uppercase;">Failed OUT</span>'
+        )
+    get_action_badge.short_description = 'Attempt'

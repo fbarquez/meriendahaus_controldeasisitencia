@@ -14,11 +14,7 @@
         <div style="text-align: center;">
             <div style="font-size: 3em; margin-bottom: 10px;">✓</div>
             <div style="font-size: 1.2em; font-weight: 600; color: #27ae60;">
-                CLOCKED IN
-            </div>
-            <div class="text-muted mt-2">
-                Since: {{ open_entry.check_in|time:"H:i" }}<br>
-                {{ open_entry.location.name }}
+                CLOCKED IN · {{ open_entry.check_in|time:"H:i" }}
             </div>
         </div>
     {% else %}
@@ -31,16 +27,13 @@
     {% endif %}
 
     <div class="text-center text-muted mt-2" style="font-size: 0.85em;">
-        Server time: {{ server_time|time:"H:i:s" }}
+        {{ server_time|date:"l, M j, Y" }}
     </div>
 </div>
 
 <!-- Messages -->
 {% if error %}
     <div class="alert alert-error">{{ error }}</div>
-{% endif %}
-{% if success %}
-    <div class="alert alert-success">{{ success }}</div>
 {% endif %}
 
 <!-- Action Button -->
