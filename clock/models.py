@@ -35,8 +35,8 @@ class Location(models.Model):
     history = HistoricalRecords()
 
     class Meta:
-        verbose_name = "Local"
-        verbose_name_plural = "Locales"
+        verbose_name = "Location"
+        verbose_name_plural = "Locations"
 
     def __str__(self):
         return f"{self.code} - {self.name}"
@@ -50,38 +50,38 @@ class TimeEntry(models.Model):
         User,
         on_delete=models.PROTECT,
         related_name='time_entries',
-        verbose_name="Empleado"
+        verbose_name="Employee"
     )
     location = models.ForeignKey(
         Location,
         on_delete=models.PROTECT,
         related_name='time_entries',
-        verbose_name="Local"
+        verbose_name="Location"
     )
-    check_in = models.DateTimeField(verbose_name="Entrada")
+    check_in = models.DateTimeField(verbose_name="Clock In")
     check_out = models.DateTimeField(
         null=True,
         blank=True,
-        verbose_name="Salida"
+        verbose_name="Clock Out"
     )
 
     # Technical info
-    check_in_ip = models.GenericIPAddressField(verbose_name="IP entrada")
+    check_in_ip = models.GenericIPAddressField(verbose_name="Clock In IP")
     check_out_ip = models.GenericIPAddressField(
         null=True,
         blank=True,
-        verbose_name="IP salida"
+        verbose_name="Clock Out IP"
     )
 
     # Manual entry tracking
     is_manual = models.BooleanField(
         default=False,
-        verbose_name="Entrada manual",
+        verbose_name="Manual Entry",
         help_text="True if created/modified by admin"
     )
     notes = models.TextField(
         blank=True,
-        verbose_name="Notas",
+        verbose_name="Notes",
         help_text="Required when is_manual=True (reason for manual entry)"
     )
 
@@ -94,15 +94,15 @@ class TimeEntry(models.Model):
         blank=True,
         on_delete=models.SET_NULL,
         related_name='modified_entries',
-        verbose_name="Modificado por"
+        verbose_name="Modified By"
     )
 
     # Track all changes automatically
     history = HistoricalRecords()
 
     class Meta:
-        verbose_name = "Fichaje"
-        verbose_name_plural = "Fichajes"
+        verbose_name = "Time Entry"
+        verbose_name_plural = "Time Entries"
         ordering = ['-check_in']
         indexes = [
             models.Index(fields=['user', 'check_in']),
@@ -131,7 +131,7 @@ class TimeEntry(models.Model):
         """Returns formatted duration string."""
         minutes = self.duration_minutes
         if minutes is None:
-            return "En curso"
+            return "In progress"
         hours = minutes // 60
         mins = minutes % 60
         return f"{hours}h {mins:02d}m"

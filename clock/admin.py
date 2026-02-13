@@ -24,9 +24,9 @@ from .models import Location, TimeEntry, FailedClockAttempt
 # -----------------------------------------------------------------------------
 
 class ZeiterfassungAdminSite(admin.AdminSite):
-    site_header = 'Meriendahaus - Registro Horario'
-    site_title = 'Zeiterfassung'
-    index_title = 'Panel de Administración'
+    site_header = 'Meriendahaus - Time Clock'
+    site_title = 'Time Clock'
+    index_title = 'Admin Dashboard'
 
     def index(self, request, extra_context=None):
         """Redirect admin index to dashboard."""
@@ -50,22 +50,22 @@ class LocationAdmin(SimpleHistoryAdmin):
     readonly_fields = ('created_at', 'updated_at', 'get_qr_preview')
 
     fieldsets = (
-        ('Información', {
+        ('Information', {
             'fields': ('code', 'name', 'is_active')
         }),
-        ('Configuración de IP (Anti-fraude)', {
+        ('IP Configuration (Anti-fraud)', {
             'fields': ('allowed_ips',),
             'description': format_html(
-                'Lista de IPs públicas permitidas para fichar. '
-                'Formato JSON: ["85.123.45.67"]. '
-                '<a href="https://whatismyip.com" target="_blank">Ver tu IP actual</a>'
+                'List of allowed public IPs for clocking. '
+                'JSON format: ["85.123.45.67"]. '
+                '<a href="https://whatismyip.com" target="_blank">Check your current IP</a>'
             )
         }),
-        ('Código QR', {
+        ('QR Code', {
             'fields': ('get_qr_preview',),
-            'description': 'Código QR para imprimir y colocar en el local.'
+            'description': 'QR code to print and place at the location.'
         }),
-        ('Metadatos', {
+        ('Metadata', {
             'fields': ('created_at', 'updated_at'),
             'classes': ('collapse',)
         }),
@@ -74,34 +74,34 @@ class LocationAdmin(SimpleHistoryAdmin):
     def get_ips_display(self, obj):
         ips = obj.allowed_ips or []
         if not ips:
-            return format_html('<span style="color: #e53e3e; font-weight: 500;">Sin configurar</span>')
+            return format_html('<span style="color: #e53e3e; font-weight: 500;">Not configured</span>')
         display = ', '.join(str(ip) for ip in ips[:2])
         if len(ips) > 2:
             display += f' (+{len(ips) - 2})'
         return format_html('<code style="background: #edf2f7; padding: 2px 6px; border-radius: 3px;">{}</code>', display)
-    get_ips_display.short_description = 'IPs Permitidas'
+    get_ips_display.short_description = 'Allowed IPs'
 
     def get_qr_link(self, obj):
         url = reverse('admin_qr_print', args=[obj.pk])
         return format_html(
-            '<a href="{}" target="_blank" style="color: #3182ce; font-weight: 500;">Ver QR</a>',
+            '<a href="{}" target="_blank" style="color: #3182ce; font-weight: 500;">View QR</a>',
             url
         )
-    get_qr_link.short_description = 'Código QR'
+    get_qr_link.short_description = 'QR Code'
 
     def get_qr_preview(self, obj):
         if not obj.pk:
-            return "Guarda primero para generar el QR"
+            return "Save first to generate QR"
         qr_url = reverse('admin_generate_qr', args=[obj.pk])
         print_url = reverse('admin_qr_print', args=[obj.pk])
         return format_html(
             '<div style="text-align: center;">'
             '<img src="{}" style="width: 150px; height: 150px; border: 1px solid #e2e8f0; border-radius: 4px;"><br><br>'
-            '<a href="{}" target="_blank" class="button">Imprimir QR</a>'
+            '<a href="{}" target="_blank" class="button">Print QR</a>'
             '</div>',
             qr_url, print_url
         )
-    get_qr_preview.short_description = 'Vista previa QR'
+    get_qr_preview.short_description = 'QR Preview'
 
 
 # -----------------------------------------------------------------------------
@@ -123,21 +123,21 @@ class TimeEntryForm(forms.ModelForm):
         if self.instance.pk or is_manual:
             if len(notes) < 10:
                 raise forms.ValidationError(
-                    'Las notas son obligatorias para entradas manuales '
-                    '(mínimo 10 caracteres explicando el motivo)'
+                    'Notes are required for manual entries '
+                    '(minimum 10 characters explaining the reason)'
                 )
 
         return cleaned_data
 
 
 class WeekFilter(admin.SimpleListFilter):
-    title = 'Semana'
+    title = 'Week'
     parameter_name = 'week'
 
     def lookups(self, request, model_admin):
         return [
-            ('current', 'Esta semana'),
-            ('last', 'Semana pasada'),
+            ('current', 'This week'),
+            ('last', 'Last week'),
         ]
 
     def queryset(self, request, queryset):
@@ -156,15 +156,15 @@ class WeekFilter(admin.SimpleListFilter):
 
 
 class StatusFilter(admin.SimpleListFilter):
-    title = 'Estado'
+    title = 'Status'
     parameter_name = 'status'
 
     def lookups(self, request, model_admin):
         return [
-            ('open', 'Fichajes abiertos'),
-            ('closed', 'Fichajes cerrados'),
-            ('overtime', 'Más de 8 horas'),
-            ('manual', 'Entradas manuales'),
+            ('open', 'Open entries'),
+            ('closed', 'Closed entries'),
+            ('overtime', 'Over 8 hours'),
+            ('manual', 'Manual entries'),
         ]
 
     def queryset(self, request, queryset):
@@ -184,16 +184,16 @@ class StatusFilter(admin.SimpleListFilter):
 
 
 class DateRangeFilter(admin.SimpleListFilter):
-    title = 'Período'
+    title = 'Period'
     parameter_name = 'period'
 
     def lookups(self, request, model_admin):
         return [
-            ('today', 'Hoy'),
-            ('yesterday', 'Ayer'),
-            ('week', 'Esta semana'),
-            ('month', 'Este mes'),
-            ('last_month', 'Mes anterior'),
+            ('today', 'Today'),
+            ('yesterday', 'Yesterday'),
+            ('week', 'This week'),
+            ('month', 'This month'),
+            ('last_month', 'Last month'),
         ]
 
     def queryset(self, request, queryset):
@@ -258,21 +258,21 @@ class TimeEntryAdmin(SimpleHistoryAdmin):
     list_per_page = 50
 
     fieldsets = (
-        ('Datos del Fichaje', {
+        ('Entry Data', {
             'fields': ('user', 'location', 'check_in', 'check_out')
         }),
-        ('Entrada Manual / Corrección', {
+        ('Manual Entry / Correction', {
             'fields': ('is_manual', 'notes'),
             'description': (
-                '⚠️ Marcar como "Entrada manual" y añadir notas explicativas '
-                'si estás corrigiendo o creando un fichaje manualmente.'
+                '⚠️ Mark as "Manual entry" and add explanatory notes '
+                'if you are correcting or creating an entry manually.'
             )
         }),
-        ('Información Técnica', {
+        ('Technical Information', {
             'fields': ('check_in_ip', 'check_out_ip'),
             'classes': ('collapse',)
         }),
-        ('Metadatos', {
+        ('Metadata', {
             'fields': ('created_at', 'modified_at', 'modified_by'),
             'classes': ('collapse',)
         }),
@@ -296,12 +296,12 @@ class TimeEntryAdmin(SimpleHistoryAdmin):
             '{}</span>',
             initials, name
         )
-    get_employee.short_description = 'Empleado'
+    get_employee.short_description = 'Employee'
     get_employee.admin_order_field = 'user__first_name'
 
     def get_date(self, obj):
         return obj.check_in.strftime('%d/%m/%Y')
-    get_date.short_description = 'Fecha'
+    get_date.short_description = 'Date'
     get_date.admin_order_field = 'check_in'
 
     def get_check_in_time(self, obj):
@@ -309,7 +309,7 @@ class TimeEntryAdmin(SimpleHistoryAdmin):
             '<span style="font-family: monospace; font-weight: 600;">{}</span>',
             obj.check_in.strftime('%H:%M')
         )
-    get_check_in_time.short_description = 'Entrada'
+    get_check_in_time.short_description = 'Clock In'
 
     def get_check_out_time(self, obj):
         if obj.check_out:
@@ -318,7 +318,7 @@ class TimeEntryAdmin(SimpleHistoryAdmin):
                 obj.check_out.strftime('%H:%M')
             )
         return format_html('<span style="color: #f39c12;">—</span>')
-    get_check_out_time.short_description = 'Salida'
+    get_check_out_time.short_description = 'Clock Out'
 
     def get_duration(self, obj):
         display = obj.duration_display
@@ -328,7 +328,7 @@ class TimeEntryAdmin(SimpleHistoryAdmin):
                 display
             )
         return display
-    get_duration.short_description = 'Duración'
+    get_duration.short_description = 'Duration'
 
     def get_status_badge(self, obj):
         if obj.is_manual:
@@ -341,7 +341,7 @@ class TimeEntryAdmin(SimpleHistoryAdmin):
             return format_html(
                 '<span style="background: #bee3f8; color: #2c5282; '
                 'padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; '
-                'text-transform: uppercase; letter-spacing: 0.03em;">Abierto</span>'
+                'text-transform: uppercase; letter-spacing: 0.03em;">Open</span>'
             )
         if obj.duration_minutes and obj.duration_minutes > 480:
             return format_html(
@@ -354,7 +354,7 @@ class TimeEntryAdmin(SimpleHistoryAdmin):
             'padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; '
             'text-transform: uppercase; letter-spacing: 0.03em;">OK</span>'
         )
-    get_status_badge.short_description = 'Estado'
+    get_status_badge.short_description = 'Status'
 
     def save_model(self, request, obj, form, change):
         if change:
@@ -368,18 +368,18 @@ class TimeEntryAdmin(SimpleHistoryAdmin):
 
         super().save_model(request, obj, form, change)
 
-    @admin.action(description='Exportar a CSV')
+    @admin.action(description='Export to CSV')
     def export_csv(self, request, queryset):
         response = HttpResponse(content_type='text/csv')
         response['Content-Disposition'] = (
-            f'attachment; filename="fichajes_{timezone.now().strftime("%Y%m%d")}.csv"'
+            f'attachment; filename="time_entries_{timezone.now().strftime("%Y%m%d")}.csv"'
         )
         response.write('\ufeff')
 
         writer = csv.writer(response, delimiter=';')
         writer.writerow([
-            'Empleado', 'Fecha', 'Entrada', 'Salida',
-            'Duración', 'Local', 'Manual', 'Notas'
+            'Employee', 'Date', 'Clock In', 'Clock Out',
+            'Duration', 'Location', 'Manual', 'Notes'
         ])
 
         for entry in queryset.select_related('user', 'location'):
@@ -390,29 +390,29 @@ class TimeEntryAdmin(SimpleHistoryAdmin):
                 entry.check_out.strftime('%H:%M') if entry.check_out else '',
                 entry.duration_display,
                 entry.location.name,
-                'Sí' if entry.is_manual else 'No',
+                'Yes' if entry.is_manual else 'No',
                 entry.notes or ''
             ])
 
         return response
 
-    @admin.action(description='Exportar a Excel')
+    @admin.action(description='Export to Excel')
     def export_excel(self, request, queryset):
         try:
             from openpyxl import Workbook
             from openpyxl.styles import Font, PatternFill, Alignment
         except ImportError:
-            self.message_user(request, 'openpyxl no instalado.', level='error')
+            self.message_user(request, 'openpyxl not installed.', level='error')
             return
 
         wb = Workbook()
         ws = wb.active
-        ws.title = 'Fichajes'
+        ws.title = 'Time Entries'
 
         header_font = Font(bold=True, color='FFFFFF')
         header_fill = PatternFill(start_color='2C3E50', end_color='2C3E50', fill_type='solid')
 
-        headers = ['Empleado', 'Fecha', 'Entrada', 'Salida', 'Duración (min)', 'Local', 'Manual', 'Notas']
+        headers = ['Employee', 'Date', 'Clock In', 'Clock Out', 'Duration (min)', 'Location', 'Manual', 'Notes']
         for col, header in enumerate(headers, 1):
             cell = ws.cell(row=1, column=col, value=header)
             cell.font = header_font
@@ -426,7 +426,7 @@ class TimeEntryAdmin(SimpleHistoryAdmin):
             ws.cell(row=row, column=4, value=entry.check_out.strftime('%H:%M') if entry.check_out else '')
             ws.cell(row=row, column=5, value=entry.duration_minutes or 0)
             ws.cell(row=row, column=6, value=entry.location.name)
-            ws.cell(row=row, column=7, value='Sí' if entry.is_manual else 'No')
+            ws.cell(row=row, column=7, value='Yes' if entry.is_manual else 'No')
             ws.cell(row=row, column=8, value=entry.notes or '')
 
         for col in ws.columns:
@@ -437,12 +437,12 @@ class TimeEntryAdmin(SimpleHistoryAdmin):
             content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         )
         response['Content-Disposition'] = (
-            f'attachment; filename="fichajes_{timezone.now().strftime("%Y%m%d")}.xlsx"'
+            f'attachment; filename="time_entries_{timezone.now().strftime("%Y%m%d")}.xlsx"'
         )
         wb.save(response)
         return response
 
-    @admin.action(description='Cerrar fichajes seleccionados')
+    @admin.action(description='Close selected entries')
     def mark_as_closed(self, request, queryset):
         count = 0
         for entry in queryset.filter(check_out__isnull=True):
@@ -452,12 +452,12 @@ class TimeEntryAdmin(SimpleHistoryAdmin):
             entry.check_out = end_of_day
             entry.check_out_ip = 'ADMIN_CLOSED'
             entry.is_manual = True
-            entry.notes = (entry.notes or '') + f'\n[Cerrado por admin {timezone.now().strftime("%d/%m/%Y %H:%M")}]'
+            entry.notes = (entry.notes or '') + f'\n[Closed by admin {timezone.now().strftime("%d/%m/%Y %H:%M")}]'
             entry.modified_by = request.user
             entry.save()
             count += 1
 
-        self.message_user(request, f'Se cerraron {count} fichajes.')
+        self.message_user(request, f'{count} entries closed.')
 
 
 # -----------------------------------------------------------------------------
@@ -472,18 +472,18 @@ class CustomUserAdmin(BaseUserAdmin):
         name = obj.get_full_name()
         if name:
             return name
-        return format_html('<span style="color: #999;">Sin nombre</span>')
-    get_full_name_display.short_description = 'Nombre'
+        return format_html('<span style="color: #999;">No name</span>')
+    get_full_name_display.short_description = 'Name'
 
     def get_status(self, obj):
         # Check if user has open entry
         if TimeEntry.objects.filter(user=obj, check_out__isnull=True).exists():
             return format_html(
                 '<span style="background: #c6f6d5; color: #276749; padding: 3px 8px; '
-                'border-radius: 4px; font-size: 11px; font-weight: 600;">PRESENTE</span>'
+                'border-radius: 4px; font-size: 11px; font-weight: 600;">PRESENT</span>'
             )
         return format_html('<span style="color: #a0aec0;">—</span>')
-    get_status.short_description = 'Estado'
+    get_status.short_description = 'Status'
 
 
 admin.site.register(User, CustomUserAdmin)
